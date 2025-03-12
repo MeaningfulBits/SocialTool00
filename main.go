@@ -60,6 +60,27 @@ func main() {
 		os.Exit(1)
 	}
 
+	//ClientID
+	if (programConfig.ClientID == "") {
+		fmt.Print("ClientID missing\n")
+		os.Exit(1)
+	}
+	//ClientSecret
+	if (programConfig.ClientSecret == "") {
+		fmt.Print("ClientSecret missing\n")
+		os.Exit(1)
+	}
+	//AccessToken
+	if (programConfig.AccessToken == "") {
+		fmt.Print("AcessToken missing\n")
+		os.Exit(1)
+	}
+	//ServerURL
+	if (programConfig.ServerURL == "") {
+		fmt.Print("ServerURL missing\n")
+		os.Exit(1)
+	}
+
 	//Logging Setup
 	if _, err := os.Stat(programConfig.LogBase); os.IsNotExist(err) {
 	    os.Mkdir(programConfig.LogBase, 0755)
@@ -76,25 +97,21 @@ func main() {
 	stdLogger.Printf("Program Config File: %s\n", configFile)
 	
 	// Setup Mastodon Client w/ credentials from conf file.
-	clientID := ""
-	clientSecret := ""
-	accessToken := ""
-	serverURL := "https://mastodon.social" // Change based on your instance
-
 	c := mastodon.NewClient(&mastodon.Config{
-		Server:       serverURL,
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		AccessToken:  accessToken,
+		Server:       programConfig.ServerURL,
+		ClientID:     programConfig.ClientID,
+		ClientSecret: programConfig.ClientSecret,
+		AccessToken:  programConfig.AccessToken,
 	})
 
 	// Save credentials for later usage if you wish to do so, config file, database, etc...
-	fmt.Println("ClientID:", c.Config.ClientID)
-	fmt.Println("ClientSecret:", c.Config.ClientSecret)
-	fmt.Println("Access Token:", c.Config.AccessToken)
+	fmt.Println("Set Client ID:", c.Config.ClientID)
+	fmt.Println("Set Client Secret:", c.Config.ClientSecret)
+	fmt.Println("Set Access Token:", c.Config.AccessToken)
+	fmt.Println("Set ServerURL:", c.Config.AccessToken)
 
 	// Lookup and get account id
-	acc, err := c.AccountLookup(context.Background(), "MeaningfulBits")
+	acc, err := c.GetAccountCurrentUser(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
