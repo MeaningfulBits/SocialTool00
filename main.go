@@ -109,45 +109,45 @@ func getFollowersPage(c *mastodon.Client, pageID string)(string){
 	}
 	
 	//Update Max_ID and Ratelimit Info using API
-		//Fetch the Header (Manually call the same Mastodon API endpoint to capture response headers.)
-		// The API endpoint is: GET /api/v1/accounts/{id}/follower?limit=80&max_id=nextID
-		url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, pageID)
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			log.Fatalf("Error creating HTTP request: %v", err)
-		}
+	//Fetch the Header (Manually call the same Mastodon API endpoint to capture response headers.)
+	// The API endpoint is: GET /api/v1/accounts/{id}/follower?limit=80&max_id=nextID
+	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, pageID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatalf("Error creating HTTP request: %v", err)
+	}
 		
-		// Set the Authorization header using your access token.
-		//Broken
-		req.Header.Set("Authorization", "Bearer xxxxxx")
+	// Set the Authorization header using your access token.
+	//Broken
+	req.Header.Set("Authorization", "Bearer xxxxxx")
 
-		httpClient := &http.Client{}
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			log.Fatalf("Error making HTTP request: %v", err)
-		}
-		defer resp.Body.Close()
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		log.Fatalf("Error making HTTP request: %v", err)
+	}
+	defer resp.Body.Close()
 		
-		fmt.Println(resp.Header)
+	fmt.Println(resp.Header)
 		
-		for key, values := range resp.Header {
-			if key == "Link"{
-				pstring, err := parseMaxID(values[0])
-				if err != nil {
-					log.Fatalf("Error with parse MaxID: %v", err)
-				}
-				fmt.Println("Parsed Max ID:", pstring)
-				pageID = pstring
+	for key, values := range resp.Header {
+		if key == "Link"{
+			pstring, err := parseMaxID(values[0])
+			if err != nil {
+				log.Fatalf("Error with parse MaxID: %v", err)
 			}
-			for _, value := range values {
-				fmt.Println("Other: ", key, value)
-			}
+			fmt.Println("Parsed Max ID:", pstring)
+			pageID = pstring
 		}
+		for _, value := range values {
+			fmt.Println("Other: ", key, value)
+		}
+	}
 		
-		fmt.Println("nextID:", pageID)
-		fmt.Println("Follower List Length:", len(followers))
+	fmt.Println("nextID:", pageID)
+	fmt.Println("Follower List Length:", len(followers))
 	
-	return
+	return "Broken"
 }
 
 func LoadProgramConfig(file string) ProgramConfig {
