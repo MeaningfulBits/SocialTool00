@@ -9,6 +9,7 @@ import (
 	"strings"
 	"net/url"
 	"net/http"
+	"time"
 
 	"github.com/mattn/go-mastodon"
 )
@@ -16,18 +17,65 @@ import (
 type ProgramConfig struct {
 	LogBase             string `json:"logBase"` //The file path used to store logs.
 	LogName             string `json:"logName"` //The file name used for program logs.
-	LogLevel	    string `json:"logLevel"`//The program's log level. (Currently Only 1 Level)
-	DataBase	    string `json:"database"`//The file path used to store data.
-	DataName	    string `json:"dataname"`//The file name used for program data.
-	Port		    int    `json:"port"` //The port used for the ProductIngest service.
-	UpdateIntervel      int    `json:"updateIntervel"` //The amount of time inbetween info updates, min 60 seconds.
-	GlobalMarkupPercent int    `json:"globalMarkupPercent"` //The markup percent for all products regardless of supplier.
-	GlobalThrottle      int    `json:"globalThrottle"` //The throttle percent used for all incoming inventory.
-	APIKey		    string `json:"apiKey"` //The api key used to access this service.
+	DataBase	    string `json:"dataBase"`//The file path used to store data.
+	DataName	    string `json:"dataName"`//The file name used for program data.
+	ClientID            string `json:"clientID"` //The api ClientID used to Access this service
+	ClientSecret        string `json:"clientSecret"` //The api ClientSecret to Access this Service
+	AccessToken         string `json:"accessToken"` //The api AccessToken to Access this service
+	ServerURL           string `json:"serverURL"` //The Server address ex "https://mastodon.social
 }
 
+//Global Vars
+var (
+	programConfig	ProgramConfig //This object holds all program config options.
+	startTime	time.Time //Holds the service's start time
+	stdLogger	*log.Logger//New Logging updates should start here by removing all of these but one.
+)
+
 func main() {
-	// Replace with your Mastodon credentials
+	startTime = time.Now() //The program start time, used to output uptime.
+	programArgs := os.Args[1:]
+	configFile := programArgs[0]
+	programConfig = LoadProgramConfig(configFile)
+
+	//Required Starting Args
+	//Logname
+	if (programConfig.LogName == "") {
+		fmt.Print("Logname missing.\n")
+		os.Exit(1)
+	}
+	//Logbase
+	if (programConfig.LogBase == "") {
+		fmt.Print("Logbase missing\n")
+		os.Exit(1)
+	}
+	//Dataname
+	if (programConfig.DataName == "") {
+		fmt.Print("Dataname missing\n")
+		os.Exit(1)
+	}
+	//Database
+	if (programConfig.DataBase == "") {
+		fmt.Print("Database missing\n")
+		os.Exit(1)
+	}
+
+	//Logging Setup
+	if _, err := os.Stat(programConfig.LogBase); os.IsNotExist(err) {
+	    os.Mkdir(programConfig.LogBase, 0755)
+	}
+
+	f, err := os.OpenFile(programConfig.LogBase + programConfig.LogName,os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+	}
+	defer f.Close()
+
+	stdLogger = log.New(f, "", log.LstdFlags)//Initial stdLogger writes to /dev/null/
+	stdLogger.Println("Standard Logger Enabled")
+	stdLogger.Printf("Program Config File: %s\n", configFile)
+	
+	// Setup Mastodon Client w/ credentials from conf file.
 	clientID := ""
 	clientSecret := ""
 	accessToken := ""
