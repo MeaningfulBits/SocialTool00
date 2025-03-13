@@ -115,8 +115,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(acc)
-		
+	fmt.Println("Followers Count:", acc.FollowersCount)
+	fmt.Println("Following Count:", acc.FollowingCount)
 	fmt.Println(getFollowersPage(c, ""))
 }
 
