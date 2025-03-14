@@ -26,6 +26,12 @@ type ProgramConfig struct {
 	ServerURL           string `json:"serverURL"` //The Server address ex "https://mastodon.social
 }
 
+// Define a struct to match the JSON structure
+type ResponseData struct {
+		UserAcct	string `json:"acct"`
+		DisplayName	string `json:"display_name"`
+}
+
 //Global Vars
 var (
 	programConfig	ProgramConfig //This object holds all program config options.
@@ -156,12 +162,6 @@ func parseMaxID(linkHeader string) (string, error) {
 }
 
 func getFollowers(acc *mastodon.Account){
-
-	// Define a struct to match the JSON structure
-	type ResponseData struct {
-		UserAcct	string `json:"acct"`
-		DisplayName	string `json:"display_name"`
-	}
 
 	//Will use an httpClient to fetch Followers using the API and JSON	
 	//Update Max_ID and Ratelimit Info using API
