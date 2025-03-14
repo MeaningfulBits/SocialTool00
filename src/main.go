@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"io"
 	"encoding/json"
 	"log"
 	"strings"
@@ -110,14 +111,16 @@ func main() {
 	fmt.Println("Set Access Token:", c.Config.AccessToken)
 	fmt.Println("Set ServerURL:", c.Config.AccessToken)
 
-	// Lookup and get account id
+	// Get Account Info from the mastodon client.
 	acc, err := c.GetAccountCurrentUser(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Followers Count:", acc.FollowersCount)
+	fmt.Println("\nFollowers Count:", acc.FollowersCount)
 	fmt.Println("Following Count:", acc.FollowingCount)
-	fmt.Println(getFollowersPage(c, ""))
+	
+	//Account used for
+	getFollowers(acc)
 }
 
 // parseMaxID extracts the "max_id" query parameter from the Link header.
@@ -152,39 +155,23 @@ func parseMaxID(linkHeader string) (string, error) {
 	return "", fmt.Errorf("max_id not found in Link header")	
 }
 
-func getFollowersPage(c *mastodon.Client, pageID string)(string){
-	pager := mastodon.Pagination{
-		Limit: 80,
+func getFollowers(acc *mastodon.Account){
+
+	// Define a struct to match the JSON structure
+	type ResponseData struct {
+		UserAcct	string `json:"acct"`
+		DisplayName	string `json:"display_name"`
 	}
-	
-	// Lookup and get account id
-	acc, err := c.AccountLookup(context.Background(), "MeaningfulBits")
-	if err != nil {
-		log.Fatal(err)
-	}
-	
-	// Get the the usernames of followers using the account ID
-	followers, err := c.GetAccountFollowers(context.Background(), acc.ID, &pager)
-	if err != nil {
-		log.Fatal(err)
-	}
-		
-	for _, f := range followers {
-		fmt.Println(f.Username)
-	}
-	
+
+	//Will use an httpClient to fetch Followers using the API and JSON	
 	//Update Max_ID and Ratelimit Info using API
 	//Fetch the Header (Manually call the same Mastodon API endpoint to capture response headers.)
 	// The API endpoint is: GET /api/v1/accounts/{id}/follower?limit=80&max_id=nextID
-	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, pageID)
+	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, "")
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatalf("Error creating HTTP request: %v", err)
 	}
-		
-	// Set the Authorization header using your access token.
-	//Broken
-	req.Header.Set("Authorization", "Bearer xxxxxx")
 
 	httpClient := &http.Client{}
 	resp, err := httpClient.Do(req)
@@ -192,9 +179,26 @@ func getFollowersPage(c *mastodon.Client, pageID string)(string){
 		log.Fatalf("Error making HTTP request: %v", err)
 	}
 	defer resp.Body.Close()
-		
-	fmt.Println(resp.Header)
-		
+	
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading body:", err)
+		os.Exit(1)
+	}	
+
+	// Unmarshal the JSON data
+	var data []ResponseData
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		fmt.Println("Error unmarshaling JSON:", err)
+		os.Exit(1)
+	}
+
+	for position := range data {
+		fmt.Println("Account Location:", data[position].UserAcct)
+	}
+
 	for key, values := range resp.Header {
 		if key == "Link"{
 			pstring, err := parseMaxID(values[0])
@@ -202,17 +206,11 @@ func getFollowersPage(c *mastodon.Client, pageID string)(string){
 				log.Fatalf("Error with parse MaxID: %v", err)
 			}
 			fmt.Println("Parsed Max ID:", pstring)
-			pageID = pstring
 		}
 		for _, value := range values {
 			fmt.Println("Other: ", key, value)
 		}
 	}
-		
-	fmt.Println("nextID:", pageID)
-	fmt.Println("Follower List Length:", len(followers))
-	
-	return "Broken"
 }
 
 func LoadProgramConfig(file string) ProgramConfig {
