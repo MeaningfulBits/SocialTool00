@@ -15,6 +15,8 @@ import (
 	"github.com/mattn/go-mastodon"
 )
 
+
+// Define a struct for incoming program setting/configs
 type ProgramConfig struct {
 	LogBase             string `json:"logBase"` //The file path used to store logs.
 	LogName             string `json:"logName"` //The file name used for program logs.
@@ -26,7 +28,7 @@ type ProgramConfig struct {
 	ServerURL           string `json:"serverURL"` //The Server address ex "https://mastodon.social
 }
 
-// Define a struct to match the JSON structure
+// Define a struct to partially match incoming JSON
 type ResponseData struct {
 		UserAcct	string `json:"acct"`
 		DisplayName	string `json:"display_name"`
@@ -131,6 +133,7 @@ func main() {
 
 // parseMaxID extracts the "max_id" query parameter from the Link header.
 // It looks for a link with rel="next" and returns the max_id value.
+// Can be optimized
 func parseMaxID(linkHeader string) (string, error) {
 	// Split multiple links separated by commas.
 	links := strings.Split(linkHeader, ",")
@@ -161,12 +164,13 @@ func parseMaxID(linkHeader string) (string, error) {
 	return "", fmt.Errorf("max_id not found in Link header")	
 }
 
+// Outputs all followers
+// The API endpoint is: GET /api/v1/accounts/{id}/follower?limit=80&max_id=nextID
+// Will use an httpClient to fetch Followers using the API and JSON
 func getFollowers(acc *mastodon.Account){
 
-	//Will use an httpClient to fetch Followers using the API and JSON	
-	//Update Max_ID and Ratelimit Info using API
-	//Fetch the Header (Manually call the same Mastodon API endpoint to capture response headers.)
-	// The API endpoint is: GET /api/v1/accounts/{id}/follower?limit=80&max_id=nextID
+	//TODO: Update Max_ID and Ratelimit Info using API
+
 	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, "")
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -199,6 +203,7 @@ func getFollowers(acc *mastodon.Account){
 		fmt.Println("Account Location:", data[position].UserAcct)
 	}
 
+	//Read and output resp.Header information
 	for key, values := range resp.Header {
 		if key == "Link"{
 			pstring, err := parseMaxID(values[0])
@@ -213,6 +218,7 @@ func getFollowers(acc *mastodon.Account){
 	}
 }
 
+//Help fuction. Might be a better way to do this.
 func LoadProgramConfig(file string) ProgramConfig {
 	configFile, err := os.Open(file)
 		defer configFile.Close()
