@@ -199,10 +199,28 @@ func getFollowers(acc *mastodon.Account){
 		os.Exit(1)
 	}
 
-	for position := range data {
-		fmt.Println("Account Location:", data[position].UserAcct)
+
+	//Output to file
+	file, err := os.Create(programConfig.DataBase + "Followers")
+		defer file.Close()
+	if err != nil {
+		fmt.Errorf("failed to create file: %w", err)
+		os.Exit(1)
 	}
 
+	for position := range data {
+		//Output to terminal
+		fmt.Println("Account Location:", data[position].UserAcct)
+
+		if _, err := file.WriteString(data[position].UserAcct + "\n"); err != nil {
+			fmt.Errorf("failed to write to file: %w", err)
+			os.Exit(1)
+		}
+
+	}
+
+	log.Printf("Followers list written to %s / %s", programConfig.DataBase, programConfig.DataName)
+	
 	//Read and output resp.Header information
 	for key, values := range resp.Header {
 		if key == "Link"{
