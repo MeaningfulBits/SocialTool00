@@ -128,7 +128,7 @@ func main() {
 	fmt.Println("Following Count:", acc.FollowingCount)
 	
 	//Account used for
-	getFollowers(acc)
+	getFollowers(acc, "")
 }
 
 // parseMaxID extracts the "max_id" query parameter from the Link header.
@@ -167,11 +167,11 @@ func parseMaxID(linkHeader string) (string, error) {
 // Outputs all followers
 // The API endpoint is: GET /api/v1/accounts/{id}/follower?limit=80&max_id=nextID
 // Will use an httpClient to fetch Followers using the API and JSON
-func getFollowers(acc *mastodon.Account){
+func getFollowers(acc *mastodon.Account, pageID string){
 
 	//TODO: Update Max_ID and Ratelimit Info using API
 
-	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, "")
+	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, pageID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatalf("Error creating HTTP request: %v", err)
@@ -201,7 +201,7 @@ func getFollowers(acc *mastodon.Account){
 
 
 	//Output to file
-	file, err := os.Create(programConfig.DataBase + "Followers")
+	file, err := os.OpenFile(programConfig.DataBase + "Followers", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		defer file.Close()
 	if err != nil {
 		fmt.Errorf("failed to create file: %w", err)
@@ -229,6 +229,7 @@ func getFollowers(acc *mastodon.Account){
 				log.Fatalf("Error with parse MaxID: %v", err)
 			}
 			fmt.Println("Parsed Max ID:", pstring)
+			getFollowers(acc, pstring)
 		}
 		for _, value := range values {
 			fmt.Println("Other: ", key, value)
