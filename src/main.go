@@ -164,13 +164,24 @@ func parseMaxID(linkHeader string) (string, error) {
 	return "", fmt.Errorf("max_id not found in Link header")	
 }
 
-// Outputs all followers
+//Output all Following
+//The API endpoint is: GET /api/v1/accounts/{id}/following?limit=80&max_id=nextID
+// Will us an httpClient to fetch Following using the API and JSON
+func getFollowing(acc *mastodon.Account, pageID string){
+	//TODO: Update max and RateLimit Info using API
+	//API Call
+	//Read the Response Body
+	//Unmarshal the JSON data
+	//Output to file
+	//Read and output resp.Header information
+}
+
+// Outputs all Followers
 // The API endpoint is: GET /api/v1/accounts/{id}/follower?limit=80&max_id=nextID
 // Will use an httpClient to fetch Followers using the API and JSON
 func getFollowers(acc *mastodon.Account, pageID string){
 
 	//TODO: Update Max_ID and Ratelimit Info using API
-
 	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, pageID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -184,21 +195,20 @@ func getFollowers(acc *mastodon.Account, pageID string){
 	}
 	defer resp.Body.Close()
 	
-	// Read the response body
+	//Read the response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading body:", err)
 		os.Exit(1)
 	}	
 
-	// Unmarshal the JSON data
+	//Unmarshal the JSON data
 	var data []ResponseData
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		fmt.Println("Error unmarshaling JSON:", err)
 		os.Exit(1)
 	}
-
 
 	//Output to file
 	file, err := os.OpenFile(programConfig.DataBase + "Followers", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
