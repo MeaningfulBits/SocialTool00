@@ -129,6 +129,7 @@ func main() {
 	
 	//Account used for
 	getFollowers(acc, "")
+	getFollowing(acc, "")
 }
 
 // parseMaxID extracts the "max_id" query parameter from the Link header.
@@ -170,10 +171,66 @@ func parseMaxID(linkHeader string) (string, error) {
 func getFollowing(acc *mastodon.Account, pageID string){
 	//TODO: Update max and RateLimit Info using API
 	//API Call
+	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/following?limit=80&max_id=%s", acc.ID, pageID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatalf("Error creating HTTP request: %v", err)
+	}
+
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		log.Fatalf("Error making HTTP request: %v", err)
+	}
+	defer resp.Body.Close()
+
 	//Read the Response Body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading body:", err)
+	}
+	
 	//Unmarshal the JSON data
+	var data []ResponseData
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		fmt.Println("Error unmarshaling JSON:", err)
+	}
+	
 	//Output to file
+	file, err := os.OpenFile(programConfig.DataBase + "Following", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		defer file.Close()
+	if err != nil {
+		fmt.Errorf("failed to create file: %w", err)
+		os.Exit(1)
+	}
+
+	for position := range data {
+		//Output to terminal
+		fmt.Println("Following Account:", data[position].UserAcct)
+		
+		//Ouput to file
+		if _, err := file.WriteString(data[position].UserAcct + "\n"); err != nil {
+			fmt.Errorf("failed to write to file: %w", err)
+		}
+
+	}
+
+	log.Printf("Following list written to %s / %s", programConfig.DataBase, programConfig.DataName)
+	
 	//Read and output resp.Header information
+	for key, values := range resp.Header {
+		if key == "Link"{
+			pstring, _ := parseMaxID(values[0])
+			fmt.Println("Parsed Max ID:", pstring)
+			if pstring != "" {
+				getFollowing(acc, pstring)
+			}
+		}
+		for _, value := range values {
+			fmt.Println("Other: ", key, value)
+		}
+	}
 }
 
 // Outputs all Followers
@@ -199,7 +256,6 @@ func getFollowers(acc *mastodon.Account, pageID string){
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading body:", err)
-		os.Exit(1)
 	}	
 
 	//Unmarshal the JSON data
@@ -207,7 +263,6 @@ func getFollowers(acc *mastodon.Account, pageID string){
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		fmt.Println("Error unmarshaling JSON:", err)
-		os.Exit(1)
 	}
 
 	//Output to file
@@ -220,11 +275,10 @@ func getFollowers(acc *mastodon.Account, pageID string){
 
 	for position := range data {
 		//Output to terminal
-		fmt.Println("Account Location:", data[position].UserAcct)
+		fmt.Println("Follower Account:", data[position].UserAcct)
 
 		if _, err := file.WriteString(data[position].UserAcct + "\n"); err != nil {
 			fmt.Errorf("failed to write to file: %w", err)
-			os.Exit(1)
 		}
 
 	}
@@ -234,12 +288,11 @@ func getFollowers(acc *mastodon.Account, pageID string){
 	//Read and output resp.Header information
 	for key, values := range resp.Header {
 		if key == "Link"{
-			pstring, err := parseMaxID(values[0])
-			if err != nil {
-				log.Fatalf("Error with parse MaxID: %v", err)
-			}
+			pstring, _ := parseMaxID(values[0])
 			fmt.Println("Parsed Max ID:", pstring)
-			getFollowers(acc, pstring)
+			if pstring != ""{
+				getFollowers(acc, pstring)
+			}
 		}
 		for _, value := range values {
 			fmt.Println("Other: ", key, value)
