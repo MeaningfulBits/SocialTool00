@@ -30,8 +30,8 @@ type ProgramConfig struct {
 
 // Define a struct to partially match incoming JSON
 type ResponseData struct {
-		UserAcct	string `json:"acct"`
-		DisplayName	string `json:"display_name"`
+	UserAcct	string `json:"acct"`
+	DisplayName	string `json:"display_name"`
 }
 
 //Global Vars
@@ -127,9 +127,16 @@ func main() {
 	fmt.Println("\nFollowers Count:", acc.FollowersCount)
 	fmt.Println("Following Count:", acc.FollowingCount)
 	
-	//Account used for
-	getFollowers(acc, "")
-	getFollowing(acc, "")
+	// Get Lists
+	followersMap := getFollowers(acc, "")
+	followingMap := getFollowing(acc, "")
+
+	// Compare Lists and Output Mutuals
+	for user := range followersMap {
+		if _, exists := followingMap[user]; exists {
+			fmt.Println("Mutuals!: ", user)
+		}
+	}
 }
 
 // parseMaxID extracts the "max_id" query parameter from the Link header.
@@ -165,10 +172,12 @@ func parseMaxID(linkHeader string) (string, error) {
 	return "", fmt.Errorf("max_id not found in Link header")	
 }
 
-//Output all Following
+//Get All Following
 //The API endpoint is: GET /api/v1/accounts/{id}/following?limit=80&max_id=nextID
-// Will us an httpClient to fetch Following using the API and JSON
-func getFollowing(acc *mastodon.Account, pageID string){
+//Will us an httpClient to fetch Following using the API and JSON
+func getFollowing(acc *mastodon.Account, pageID string) (map[string]struct{}) {
+	followingSet := make(map[string]struct{})
+
 	//TODO: Update max and RateLimit Info using API
 	//API Call
 	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/following?limit=80&max_id=%s", acc.ID, pageID)
@@ -206,9 +215,12 @@ func getFollowing(acc *mastodon.Account, pageID string){
 	}
 
 	for position := range data {
+		//Save for Comparison
+		followingSet[data[position].UserAcct] = struct{}{}
+
 		//Output to terminal
 		fmt.Println("Following Account:", data[position].UserAcct)
-		
+
 		//Ouput to file
 		if _, err := file.WriteString(data[position].UserAcct + "\n"); err != nil {
 			fmt.Errorf("failed to write to file: %w", err)
@@ -216,29 +228,34 @@ func getFollowing(acc *mastodon.Account, pageID string){
 
 	}
 
-	log.Printf("Following list written to %s / %s", programConfig.DataBase, programConfig.DataName)
-	
 	//Read and output resp.Header information
 	for key, values := range resp.Header {
 		if key == "Link"{
 			pstring, _ := parseMaxID(values[0])
 			fmt.Println("Parsed Max ID:", pstring)
 			if pstring != "" {
-				getFollowing(acc, pstring)
+				rFollowingSet := getFollowing(acc, pstring)
+				for line := range rFollowingSet {
+					followingSet[line] = struct{}{}	
+				}
 			}
 		}
 		for _, value := range values {
 			fmt.Println("Other: ", key, value)
 		}
 	}
+
+	return followingSet
 }
 
 // Outputs all Followers
 // The API endpoint is: GET /api/v1/accounts/{id}/follower?limit=80&max_id=nextID
 // Will use an httpClient to fetch Followers using the API and JSON
-func getFollowers(acc *mastodon.Account, pageID string){
+func getFollowers(acc *mastodon.Account, pageID string) (map[string]struct{}) {
+	followerSet := make(map[string]struct{})
 
 	//TODO: Update Max_ID and Ratelimit Info using API
+	//API Call
 	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, pageID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -274,30 +291,36 @@ func getFollowers(acc *mastodon.Account, pageID string){
 	}
 
 	for position := range data {
+		//Save for Comparison
+		followerSet[data[position].UserAcct] = struct{}{}
+
 		//Output to terminal
 		fmt.Println("Follower Account:", data[position].UserAcct)
 
+		//Output to file
 		if _, err := file.WriteString(data[position].UserAcct + "\n"); err != nil {
 			fmt.Errorf("failed to write to file: %w", err)
 		}
-
 	}
 
-	log.Printf("Followers list written to %s / %s", programConfig.DataBase, programConfig.DataName)
-	
 	//Read and output resp.Header information
 	for key, values := range resp.Header {
 		if key == "Link"{
 			pstring, _ := parseMaxID(values[0])
 			fmt.Println("Parsed Max ID:", pstring)
 			if pstring != ""{
-				getFollowers(acc, pstring)
+				rFollowerSet := getFollowers(acc, pstring)
+				for line := range rFollowerSet {
+					followerSet[line] = struct{}{}
+				}
 			}
 		}
 		for _, value := range values {
 			fmt.Println("Other: ", key, value)
 		}
 	}
+
+	return followerSet
 }
 
 //Help fuction. Might be a better way to do this.
