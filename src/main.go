@@ -130,12 +130,43 @@ func main() {
 	// Get Lists
 	followersMap := getFollowers(acc, "")
 	followingMap := getFollowing(acc, "")
+	// Output Lists
+	outputMap(followersMap, "Followers")
+	outputMap(followingMap, "Following")
 
-	// Compare Lists and Output Mutuals
+	// Compare Lists
+	mutualMap := make(map[string]struct{})
 	for user := range followersMap {
 		if _, exists := followingMap[user]; exists {
-			fmt.Println("Mutuals!: ", user)
+			//Save to map
+			mutualMap[user] = struct{}{}
+			fmt.Println("Mutual!: ", user)
 		}
+	}
+	// Output Mutuals
+	outputMap(mutualMap, "Mutuals")
+}
+
+// outputMap outputs the contents of a map to the file directory
+func outputMap(mapData map[string]struct{}, fileName string) {
+	//Create file and halt if unable to write/create file
+	file, err := os.OpenFile(programConfig.DataBase + fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		defer file.Close()
+	if err != nil {
+		fmt.Errorf("failed to create file: %w", err)
+		os.Exit(1)
+	}
+
+	//For each line of data in the map write it to a line in the file
+	for line := range mapData {
+		//Output to terminal
+		fmt.Printf("Writing %s to %s\n", line, fileName)
+
+		//Ouput to file
+		if _, err := file.WriteString(line + "\n"); err != nil {
+			fmt.Errorf("failed to write to file: %w", err)
+		}
+
 	}
 }
 
@@ -206,25 +237,12 @@ func getFollowing(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 		fmt.Println("Error unmarshaling JSON:", err)
 	}
 	
-	//Output to file
-	file, err := os.OpenFile(programConfig.DataBase + "Following", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-		defer file.Close()
-	if err != nil {
-		fmt.Errorf("failed to create file: %w", err)
-		os.Exit(1)
-	}
-
 	for position := range data {
-		//Save for Comparison
+		//Save to map
 		followingSet[data[position].UserAcct] = struct{}{}
 
 		//Output to terminal
 		fmt.Println("Following Account:", data[position].UserAcct)
-
-		//Ouput to file
-		if _, err := file.WriteString(data[position].UserAcct + "\n"); err != nil {
-			fmt.Errorf("failed to write to file: %w", err)
-		}
 
 	}
 
@@ -282,25 +300,12 @@ func getFollowers(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 		fmt.Println("Error unmarshaling JSON:", err)
 	}
 
-	//Output to file
-	file, err := os.OpenFile(programConfig.DataBase + "Followers", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-		defer file.Close()
-	if err != nil {
-		fmt.Errorf("failed to create file: %w", err)
-		os.Exit(1)
-	}
-
 	for position := range data {
-		//Save for Comparison
+		//Save to map
 		followerSet[data[position].UserAcct] = struct{}{}
 
 		//Output to terminal
 		fmt.Println("Follower Account:", data[position].UserAcct)
-
-		//Output to file
-		if _, err := file.WriteString(data[position].UserAcct + "\n"); err != nil {
-			fmt.Errorf("failed to write to file: %w", err)
-		}
 	}
 
 	//Read and output resp.Header information
