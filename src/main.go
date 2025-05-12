@@ -21,7 +21,6 @@ type ProgramConfig struct {
 	LogBase             string `json:"logBase"` //The file path used to store logs.
 	LogName             string `json:"logName"` //The file name used for program logs.
 	DataBase	    string `json:"dataBase"`//The file path used to store data.
-	DataName	    string `json:"dataName"`//The file name used for program data.
 	ClientID            string `json:"clientID"` //The api ClientID used to Access this service
 	ClientSecret        string `json:"clientSecret"` //The api ClientSecret to Access this Service
 	AccessToken         string `json:"accessToken"` //The api AccessToken to Access this service
@@ -56,11 +55,6 @@ func main() {
 	//Logbase
 	if (programConfig.LogBase == "") {
 		fmt.Print("Logbase missing\n")
-		os.Exit(1)
-	}
-	//Dataname
-	if (programConfig.DataName == "") {
-		fmt.Print("Dataname missing\n")
 		os.Exit(1)
 	}
 	//Database
