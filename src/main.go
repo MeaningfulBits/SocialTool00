@@ -52,32 +52,41 @@ func main() {
 		fmt.Print("Logname missing.\n")
 		os.Exit(1)
 	}
+	
 	//Logbase
 	if (programConfig.LogBase == "") {
 		fmt.Print("Logbase missing\n")
 		os.Exit(1)
 	}
+	
 	//Database
 	if (programConfig.DataBase == "") {
 		fmt.Print("Database missing\n")
 		os.Exit(1)
 	}
+	//Checks for the data directory, creates it w/ permissions (0755) if needed.
+	if err := os.MkdirAll(programConfig.DataBase, 0755); err != nil {
+		log.Fatalf("Failed to create directory: %v", err)
+	}
 
-	//ClientID
+	//ClientKey
 	if (programConfig.ClientID == "") {
 		fmt.Print("ClientID missing\n")
 		os.Exit(1)
 	}
+	
 	//ClientSecret
 	if (programConfig.ClientSecret == "") {
 		fmt.Print("ClientSecret missing\n")
 		os.Exit(1)
 	}
+	
 	//AccessToken
 	if (programConfig.AccessToken == "") {
 		fmt.Print("AcessToken missing\n")
 		os.Exit(1)
 	}
+	
 	//ServerURL
 	if (programConfig.ServerURL == "") {
 		fmt.Print("ServerURL missing\n")
@@ -85,10 +94,12 @@ func main() {
 	}
 
 	//Logging Setup
-	if _, err := os.Stat(programConfig.LogBase); os.IsNotExist(err) {
-	    os.Mkdir(programConfig.LogBase, 0755)
+	//Checks if the log directory exists if not it create it with permissions 0755
+	if err := os.MkdirAll(programConfig.LogBase, 0755); err != nil {
+		log.Fatalf("Fail to create directory: %v", err)
 	}
 
+	//Opens the log file, if the file doesn't exist it creates the file with permissions 0644
 	f, err := os.OpenFile(programConfig.LogBase + programConfig.LogName,os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)
