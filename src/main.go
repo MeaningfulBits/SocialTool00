@@ -21,7 +21,7 @@ type ProgramConfig struct {
 	LogBase             string `json:"logBase"` //The file path used to store logs.
 	LogName             string `json:"logName"` //The file name used for program logs.
 	DataBase	    string `json:"dataBase"`//The file path used to store data.
-	ClientID            string `json:"clientID"` //The api ClientID used to Access this service
+	ClientKey           string `json:"clientKey"` //The api ClientKey used to Access this service
 	ClientSecret        string `json:"clientSecret"` //The api ClientSecret to Access this Service
 	AccessToken         string `json:"accessToken"` //The api AccessToken to Access this service
 	ServerURL           string `json:"serverURL"` //The Server address ex "https://mastodon.social
@@ -33,7 +33,7 @@ type ResponseData struct {
 	DisplayName	string `json:"display_name"`
 }
 
-//Global Vars
+// Global Vars
 var (
 	programConfig	ProgramConfig //This object holds all program config options.
 	startTime	time.Time //Holds the service's start time
@@ -44,7 +44,7 @@ func main() {
 	startTime = time.Now() //The program start time, used to output uptime.
 	programArgs := os.Args[1:]
 	configFile := programArgs[0]
-	programConfig = LoadProgramConfig(configFile)
+	programConfig = loadProgramConfig(configFile)
 
 	//Required Starting Args
 	//Logname
@@ -70,8 +70,8 @@ func main() {
 	}
 
 	//ClientKey
-	if (programConfig.ClientID == "") {
-		fmt.Print("ClientID missing\n")
+	if (programConfig.ClientKey == "") {
+		fmt.Print("ClientKey missing\n")
 		os.Exit(1)
 	}
 	
@@ -111,9 +111,10 @@ func main() {
 	stdLogger.Printf("Program Config File: %s\n", configFile)
 	
 	// Setup Mastodon Client w/ credentials from conf file.
+	// Note: Mastodon's API Docs calls it "ClientKey" and the go-mastodon client calls it "ClientID"
 	c := mastodon.NewClient(&mastodon.Config{
 		Server:       programConfig.ServerURL,
-		ClientID:     programConfig.ClientID,
+		ClientID:     programConfig.ClientKey,
 		ClientSecret: programConfig.ClientSecret,
 		AccessToken:  programConfig.AccessToken,
 	})
@@ -152,7 +153,7 @@ func main() {
 	outputMap(mutualMap, "Mutuals")
 }
 
-// outputMap outputs the contents of a map to the file directory
+// outputMap: outputs the contents of a map to the file directory
 func outputMap(mapData map[string]struct{}, fileName string) {
 	//Create file and halt if unable to write/create file
 	file, err := os.OpenFile(programConfig.DataBase + fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
@@ -208,9 +209,9 @@ func parseMaxID(linkHeader string) (string, error) {
 	return "", fmt.Errorf("max_id not found in Link header")	
 }
 
-//Get All Following
-//The API endpoint is: GET /api/v1/accounts/{id}/following?limit=80&max_id=nextID
-//Will us an httpClient to fetch Following using the API and JSON
+// Outputs all Following
+// The API endpoint is: GET /api/v1/accounts/{id}/following?limit=80&max_id=nextID
+// Will use an httpClient to fetch Following using the API and JSON
 func getFollowing(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 	followingSet := make(map[string]struct{})
 
@@ -333,8 +334,8 @@ func getFollowers(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 	return followerSet
 }
 
-//Help fuction. Might be a better way to do this.
-func LoadProgramConfig(file string) ProgramConfig {
+// loadProgramConfig: Might be a better way to do this.
+func loadProgramConfig(file string) ProgramConfig {
 	configFile, err := os.Open(file)
 		defer configFile.Close()
 	if err != nil {
