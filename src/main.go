@@ -7,6 +7,7 @@ import (
 	"io"
 	"encoding/json"
 	"log"
+	"regexp"
 	"strings"
 	"net/url"
 	"net/http"
@@ -38,6 +39,7 @@ var (
 	programConfig	ProgramConfig //This object holds all program config options.
 	startTime	time.Time //Holds the service's start time
 	stdLogger	*log.Logger//New Logging updates should start here by removing all of these but one.
+	acctRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 )
 
 func main() {
@@ -217,8 +219,8 @@ func getFollowing(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 
 	//TODO: Update max and RateLimit Info using API
 	//API Call
-	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/following?limit=80&max_id=%s", acc.ID, pageID)
-	req, err := http.NewRequest("GET", url, nil)
+	apiURL := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/following?limit=80&max_id=%s", acc.ID, pageID)
+	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		log.Fatalf("Error creating HTTP request: %v", err)
 	}
@@ -244,12 +246,19 @@ func getFollowing(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 	}
 	
 	for position := range data {
+		//Check its a properly formated User Account (UserName@Social.Example.org)
+		//If no server info then the UserAcct is local.
+		//Append local serverURL (programConf.serverURL) to the UserAcct string.
+		u, _ := url.Parse(programConfig.ServerURL)
+		if !acctRegex.MatchString(data[position].UserAcct) {
+			data[position].UserAcct = data[position].UserAcct + "@" + u.Hostname()
+		}
+		
 		//Save to map
 		followingSet[data[position].UserAcct] = struct{}{}
 
 		//Output to terminal
 		fmt.Println("Following Account:", data[position].UserAcct)
-
 	}
 
 	//Read and output resp.Header information
@@ -280,8 +289,8 @@ func getFollowers(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 
 	//TODO: Update Max_ID and Ratelimit Info using API
 	//API Call
-	url := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, pageID)
-	req, err := http.NewRequest("GET", url, nil)
+	apiURL := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, pageID)
+	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		log.Fatalf("Error creating HTTP request: %v", err)
 	}
@@ -307,6 +316,14 @@ func getFollowers(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 	}
 
 	for position := range data {
+		//Check its a properly formated User Account (UserName@Social.Example.org)
+		//If no server info then the UserAcct is local.
+		//Append local serverURL (programConf.serverURL) to the UserAcct string.
+		u, _ := url.Parse(programConfig.ServerURL)
+		if !acctRegex.MatchString(data[position].UserAcct) {
+			data[position].UserAcct = data[position].UserAcct + "@" + u.Hostname()
+		}
+		
 		//Save to map
 		followerSet[data[position].UserAcct] = struct{}{}
 
