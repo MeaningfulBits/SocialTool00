@@ -3,7 +3,7 @@ Uses go-mastodon and the mastodon api to get and output three lists (Followers, 
 Usage:
 You'll need to replace some of the info in the conf file.
 
-Replace "clientID", "clientSecret", "accessToken", and "serverURL"
+Replace "clientKey", "clientSecret", "accessToken", and "serverURL"
 
 You can find more information by visiting the 'settings/applications' section for your mastodon account.
 
