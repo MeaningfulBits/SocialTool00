@@ -174,7 +174,6 @@ func outputMap(mapData map[string]struct{}, fileName string) {
 		if _, err := file.WriteString(line + "\n"); err != nil {
 			fmt.Errorf("failed to write to file: %w", err)
 		}
-
 	}
 }
 
@@ -219,7 +218,8 @@ func getFollowing(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 
 	//TODO: Update max and RateLimit Info using API
 	//API Call
-	apiURL := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/following?limit=80&max_id=%s", acc.ID, pageID)
+	apiURL := fmt.Sprintf("%s/api/v1/accounts/%s/following?limit=80&max_id=%s", programConfig.ServerURL, acc.ID, pageID)
+	stdLogger.Printf(apiURL)
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		log.Fatalf("Error creating HTTP request: %v", err)
@@ -288,8 +288,9 @@ func getFollowers(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 	followerSet := make(map[string]struct{})
 
 	//TODO: Update Max_ID and Ratelimit Info using API
-	//API Call
-	apiURL := fmt.Sprintf("https://mastodon.social/api/v1/accounts/%s/followers?limit=80&max_id=%s", acc.ID, pageID)
+	//API CallL
+	apiURL := fmt.Sprintf("%s/api/v1/accounts/%s/followers?limit=80&max_id=%s", programConfig.ServerURL, acc.ID, pageID)
+	stdLogger.Printf(apiURL)
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		log.Fatalf("Error creating HTTP request: %v", err)
