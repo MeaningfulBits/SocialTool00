@@ -43,7 +43,7 @@ var (
 )
 
 func main() {
-	startTime = time.Now() //The program start time, used to output uptime.
+	startTime := time.Now() //The program start time, used to output uptime.
 	programArgs := os.Args[1:]
 	configFile := programArgs[0]
 	programConfig = loadProgramConfig(configFile)
@@ -153,8 +153,10 @@ func main() {
 	}
 	// Output Mutuals
 	outputMap(mutualMap, "Mutuals")
-	fmt.Print("Fetching FollowLists Finished")
-	stdLogger.Print("Fetching FollowLists Finished")
+
+	elapsedTime := time.Now()
+	fmt.Printf("Fetching FollowLists Finished. (Duration:%v)\n", elapsedTime.Sub(startTime))
+	stdLogger.Printf("Fetching FollowLists Finished. (Duration:%v)\n", elapsedTime.Sub(startTime))
 }
 
 // outputMap: outputs the contents of a map to the file directory
