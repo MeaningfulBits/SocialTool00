@@ -122,18 +122,18 @@ func main() {
 	})
 
 	// Save credentials for later usage if you wish to do so, config file, database, etc...
-	fmt.Println("Set Client ID:", c.Config.ClientID)
-	fmt.Println("Set Client Secret:", c.Config.ClientSecret)
-	fmt.Println("Set Access Token:", c.Config.AccessToken)
-	fmt.Println("Set ServerURL:", c.Config.AccessToken)
+	fmt.Println("Client ID Used:", c.Config.ClientID)
+	fmt.Println("Client Secret Used:", c.Config.ClientSecret)
+	fmt.Println("Access Token Used:", c.Config.AccessToken)
+	fmt.Println("ServerURL Used:", c.Config.Server)
 
 	// Get Account Info from the mastodon client.
 	acc, err := c.GetAccountCurrentUser(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("\nFollowers Count:", acc.FollowersCount)
-	fmt.Println("Following Count:", acc.FollowingCount)
+	stdLogger.Println("Followers Count:", acc.FollowersCount)
+	stdLogger.Println("Following Count:", acc.FollowingCount)
 	
 	// Get Lists
 	followersMap := getFollowers(acc, "")
@@ -153,6 +153,8 @@ func main() {
 	}
 	// Output Mutuals
 	outputMap(mutualMap, "Mutuals")
+	fmt.Print("Fetching FollowLists Finished")
+	stdLogger.Print("Fetching FollowLists Finished")
 }
 
 // outputMap: outputs the contents of a map to the file directory
@@ -210,7 +212,7 @@ func parseMaxID(linkHeader string) (string, error) {
 	return "", fmt.Errorf("max_id not found in Link header")	
 }
 
-// Outputs all Following
+// Outputs all Following (Will be merged with Followers fuction)
 // The API endpoint is: GET /api/v1/accounts/{id}/following?limit=80&max_id=nextID
 // Will use an httpClient to fetch Following using the API and JSON
 func getFollowing(acc *mastodon.Account, pageID string) (map[string]struct{}) {
@@ -219,7 +221,7 @@ func getFollowing(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 	//TODO: Update max and RateLimit Info using API
 	//API Call
 	apiURL := fmt.Sprintf("%s/api/v1/accounts/%s/following?limit=80&max_id=%s", programConfig.ServerURL, acc.ID, pageID)
-	stdLogger.Printf(apiURL)
+	stdLogger.Printf("Get API URL:(%s)\n", apiURL)
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		log.Fatalf("Error creating HTTP request: %v", err)
@@ -281,16 +283,16 @@ func getFollowing(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 	return followingSet
 }
 
-// Outputs all Followers
+// Outputs all Followers (Will be merged with Following function)
 // The API endpoint is: GET /api/v1/accounts/{id}/follower?limit=80&max_id=nextID
 // Will use an httpClient to fetch Followers using the API and JSON
 func getFollowers(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 	followerSet := make(map[string]struct{})
 
 	//TODO: Update Max_ID and Ratelimit Info using API
-	//API CallL
+	//API Call
 	apiURL := fmt.Sprintf("%s/api/v1/accounts/%s/followers?limit=80&max_id=%s", programConfig.ServerURL, acc.ID, pageID)
-	stdLogger.Printf(apiURL)
+	stdLogger.Printf("Get API URL:(%s)\n", apiURL)
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		log.Fatalf("Error creating HTTP request: %v", err)
