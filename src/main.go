@@ -136,23 +136,23 @@ func main() {
 	stdLogger.Println("Following Count:", acc.FollowingCount)
 	
 	// Get Lists
-	followersMap := getFollowers(acc, "")
+	//followersMap := getFollowers(acc, "")
 	followingMap := getFollowing(acc, "")
 	// Output Lists
-	outputMap(followersMap, "Followers")
+	//outputMap(followersMap, "Followers")
 	outputMap(followingMap, "Following")
 
 	// Compare Lists
-	mutualMap := make(map[string]struct{})
-	for user := range followersMap {
-		if _, exists := followingMap[user]; exists {
-			//Save to map
-			mutualMap[user] = struct{}{}
-			fmt.Println("Mutual!: ", user)
-		}
-	}
+	//mutualMap := make(map[string]struct{})
+	//for user := range followersMap {
+	//	if _, exists := followingMap[user]; exists {
+	//		//Save to map
+	//		mutualMap[user] = struct{}{}
+	//		fmt.Println("Mutual!: ", user)
+	//	}
+	//}
 	// Output Mutuals
-	outputMap(mutualMap, "Mutuals")
+	//outputMap(mutualMap, "Mutuals")
 
 	elapsedTime := time.Now()
 	fmt.Printf("Fetching FollowLists Finished. (Duration:%v)\n", elapsedTime.Sub(startTime))
@@ -218,67 +218,73 @@ func parseMaxID(linkHeader string) (string, error) {
 // The API endpoint is: GET /api/v1/accounts/{id}/following?limit=80&max_id=nextID
 // Will use an httpClient to fetch Following using the API and JSON
 func getFollowing(acc *mastodon.Account, pageID string) (map[string]struct{}) {
-	followingSet := make(map[string]struct{})
-
-	//TODO: Update max and RateLimit Info using API
-	//API Call
-	apiURL := fmt.Sprintf("%s/api/v1/accounts/%s/following?limit=80&max_id=%s", programConfig.ServerURL, acc.ID, pageID)
-	stdLogger.Printf("Get API URL:(%s)\n", apiURL)
-	req, err := http.NewRequest("GET", apiURL, nil)
-	if err != nil {
-		log.Fatalf("Error creating HTTP request: %v", err)
-	}
-
 	httpClient := &http.Client{}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		log.Fatalf("Error making HTTP request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	//Read the Response Body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading body:", err)
-	}
+	followingSet := make(map[string]struct{})
+	pstring := ""
 	
-	//Unmarshal the JSON data
-	var data []ResponseData
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		fmt.Println("Error unmarshaling JSON:", err)
-	}
-	
-	for position := range data {
-		//Check its a properly formated User Account (UserName@Social.Example.org)
-		//If no server info then the UserAcct is local.
-		//Append local serverURL (programConf.serverURL) to the UserAcct string.
-		u, _ := url.Parse(programConfig.ServerURL)
-		if !acctRegex.MatchString(data[position].UserAcct) {
-			data[position].UserAcct = data[position].UserAcct + "@" + u.Hostname()
+	for {
+		//TODO: Update max and RateLimit Info using API
+		//API Call
+		apiURL := fmt.Sprintf("%s/api/v1/accounts/%s/following?limit=80&max_id=%s", programConfig.ServerURL, acc.ID, pstring)
+		stdLogger.Printf("Get API URL:(%s)\n", apiURL)
+		req, err := http.NewRequest("GET", apiURL, nil)
+		if err != nil {
+			log.Fatalf("Error creating HTTP request: %v", err)
+			break
 		}
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			log.Fatalf("Error making HTTP request: %v", err)
+			break
+		}
+		defer resp.Body.Close()
+
+		//Read the Response Body
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("Error reading body:", err)
+			break
+		}
+	
+		//Unmarshal the JSON data
+		var data []ResponseData
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			fmt.Println("Error unmarshaling JSON:", err)
+			break
+		}
+	
+		for position := range data {
+			//Check its a properly formated User Account (UserName@Social.Example.org)
+			//If no server info then the UserAcct is local.
+			//Append local serverURL (programConf.serverURL) to the UserAcct string.
+			u, _ := url.Parse(programConfig.ServerURL)
+			if !acctRegex.MatchString(data[position].UserAcct) {
+				data[position].UserAcct = data[position].UserAcct + "@" + u.Hostname()
+			}
 		
-		//Save to map
-		followingSet[data[position].UserAcct] = struct{}{}
+			//Save to map
+			followingSet[data[position].UserAcct] = struct{}{}
 
-		//Output to terminal
-		fmt.Println("Following Account:", data[position].UserAcct)
-	}
+			//Output to terminal
+			fmt.Println("Following Account:", data[position].UserAcct)
+		}
 
-	//Read and output resp.Header information
-	for key, values := range resp.Header {
-		if key == "Link"{
-			pstring, _ := parseMaxID(values[0])
-			fmt.Println("Parsed Max ID:", pstring)
-			if pstring != "" {
-				rFollowingSet := getFollowing(acc, pstring)
-				for line := range rFollowingSet {
-					followingSet[line] = struct{}{}	
-				}
+		//Read and output resp.Header information
+		for key, values := range resp.Header {
+			if key == "Link"{
+				pstring, _ = parseMaxID(values[0])
+				fmt.Println("Parsed Max ID:", pstring)
+			}
+			for _, value := range values {
+				fmt.Println("Other: ", key, value)
 			}
 		}
-		for _, value := range values {
-			fmt.Println("Other: ", key, value)
+		
+		if pstring == "" {
+			fmt.Println("No more pages.")
+			break
 		}
 	}
 
@@ -288,73 +294,73 @@ func getFollowing(acc *mastodon.Account, pageID string) (map[string]struct{}) {
 // Outputs all Followers (Will be merged with Following function)
 // The API endpoint is: GET /api/v1/accounts/{id}/follower?limit=80&max_id=nextID
 // Will use an httpClient to fetch Followers using the API and JSON
-func getFollowers(acc *mastodon.Account, pageID string) (map[string]struct{}) {
-	followerSet := make(map[string]struct{})
+//func getFollowers(acc *mastodon.Account, pageID string) (map[string]struct{}) {
+//	followerSet := make(map[string]struct{})
 
 	//TODO: Update Max_ID and Ratelimit Info using API
 	//API Call
-	apiURL := fmt.Sprintf("%s/api/v1/accounts/%s/followers?limit=80&max_id=%s", programConfig.ServerURL, acc.ID, pageID)
-	stdLogger.Printf("Get API URL:(%s)\n", apiURL)
-	req, err := http.NewRequest("GET", apiURL, nil)
-	if err != nil {
-		log.Fatalf("Error creating HTTP request: %v", err)
-	}
+	//apiURL := fmt.Sprintf("%s/api/v1/accounts/%s/followers?limit=80&max_id=%s", programConfig.ServerURL, acc.ID, pageID)
+	//stdLogger.Printf("Get API URL:(%s)\n", apiURL)
+	//req, err := http.NewRequest("GET", apiURL, nil)
+	//if err != nil {
+	//	log.Fatalf("Error creating HTTP request: %v", err)
+	//}
 
-	httpClient := &http.Client{}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		log.Fatalf("Error making HTTP request: %v", err)
-	}
-	defer resp.Body.Close()
+	//httpClient := &http.Client{}
+	//resp, err := httpClient.Do(req)
+	//if err != nil {
+		//log.Fatalf("Error making HTTP request: %v", err)
+	//}
+	//defer resp.Body.Close()
 	
 	//Read the response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading body:", err)
-	}	
+	//body, err := io.ReadAll(resp.Body)
+	//if err != nil {
+		//fmt.Println("Error reading body:", err)
+	//}	
 
 	//Unmarshal the JSON data
-	var data []ResponseData
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		fmt.Println("Error unmarshaling JSON:", err)
-	}
+	//var data []ResponseData
+	//err = json.Unmarshal(body, &data)
+	//if err != nil {
+		//fmt.Println("Error unmarshaling JSON:", err)
+	//}
 
-	for position := range data {
+	//for position := range data {
 		//Check its a properly formated User Account (UserName@Social.Example.org)
 		//If no server info then the UserAcct is local.
 		//Append local serverURL (programConf.serverURL) to the UserAcct string.
-		u, _ := url.Parse(programConfig.ServerURL)
-		if !acctRegex.MatchString(data[position].UserAcct) {
-			data[position].UserAcct = data[position].UserAcct + "@" + u.Hostname()
-		}
+		//u, _ := url.Parse(programConfig.ServerURL)
+		//if !acctRegex.MatchString(data[position].UserAcct) {
+			//data[position].UserAcct = data[position].UserAcct + "@" + u.Hostname()
+		//}
 		
 		//Save to map
-		followerSet[data[position].UserAcct] = struct{}{}
+		//followerSet[data[position].UserAcct] = struct{}{}
 
 		//Output to terminal
-		fmt.Println("Follower Account:", data[position].UserAcct)
-	}
+		//fmt.Println("Follower Account:", data[position].UserAcct)
+	//}
 
 	//Read and output resp.Header information
-	for key, values := range resp.Header {
-		if key == "Link"{
-			pstring, _ := parseMaxID(values[0])
-			fmt.Println("Parsed Max ID:", pstring)
-			if pstring != ""{
-				rFollowerSet := getFollowers(acc, pstring)
-				for line := range rFollowerSet {
-					followerSet[line] = struct{}{}
-				}
-			}
-		}
-		for _, value := range values {
-			fmt.Println("Other: ", key, value)
-		}
-	}
+	//for key, values := range resp.Header {
+		//if key == "Link"{
+			//pstring, _ := parseMaxID(values[0])
+			//fmt.Println("Parsed Max ID:", pstring)
+			//if pstring != ""{
+				//rFollowerSet := getFollowers(acc, pstring)
+				//for line := range rFollowerSet {
+					//followerSet[line] = struct{}{}
+				//}
+			//}
+		//}
+		//for _, value := range values {
+			//fmt.Println("Other: ", key, value)
+		//}
+	//}
 
-	return followerSet
-}
+	//return followerSet
+//}
 
 // loadProgramConfig: Might be a better way to do this.
 func loadProgramConfig(file string) ProgramConfig {
