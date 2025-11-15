@@ -48,18 +48,6 @@ func main() {
 	programConfig = loadProgramConfig(configFile)
 
 	//Required Starting Args
-	//Logname
-	if (programConfig.LogName == "") {
-		fmt.Print("Logname missing.\n")
-		os.Exit(1)
-	}
-	
-	//Logbase
-	if (programConfig.LogBase == "") {
-		fmt.Print("Logbase missing\n")
-		os.Exit(1)
-	}
-
 	//ClientKey
 	if (programConfig.ClientKey == "") {
 		fmt.Print("ClientKey missing\n")
@@ -90,14 +78,7 @@ func main() {
 		log.Fatalf("Fail to create directory: %v", err)
 	}
 
-	//Opens the log file, if the file doesn't exist it creates the file with permissions 0644
-	f, err := os.OpenFile(programConfig.LogBase + programConfig.LogName,os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println(err)
-	}
-	defer f.Close()
-
-	stdLogger = log.New(f, "", log.LstdFlags)//Initial stdLogger writes to /dev/null/
+	stdLogger = log.New(os.Stderr, "", log.LstdFlags | log.Lshortfile)//Initial stdLogger writes to /dev/null/
 	stdLogger.Println("Standard Logger Enabled")
 	stdLogger.Printf("Program Config File: %s\n", configFile)
 	
@@ -181,13 +162,13 @@ func getFollowing(acc *mastodon.Account, pageID string) {
 		stdLogger.Printf("Get API URL:(%s)\n", apiURL)
 		req, err := http.NewRequest("GET", apiURL, nil)
 		if err != nil {
-			log.Fatalf("Error creating HTTP request: %v", err)
+			stdLogger.Printf("Error creating HTTP request: %+v", err)
 			break
 		}
 
 		resp, err := httpClient.Do(req)
 		if err != nil {
-			log.Fatalf("Error making HTTP request: %v", err)
+			stdLogger.Printf("Error making HTTP request: %+v", err)
 			break
 		}
 		defer resp.Body.Close()
@@ -195,7 +176,7 @@ func getFollowing(acc *mastodon.Account, pageID string) {
 		//Read the Response Body
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println("Error reading body:", err)
+			stdLogger.Printf("Error reading body: %+v", err)
 			break
 		}
 	
@@ -203,7 +184,7 @@ func getFollowing(acc *mastodon.Account, pageID string) {
 		var data []ResponseData
 		err = json.Unmarshal(body, &data)
 		if err != nil {
-			fmt.Println("Error unmarshaling JSON:", err)
+			stdLogger.Printf("Error unmarshaling JSON: %+v", err)
 			break
 		}
 	
@@ -219,7 +200,7 @@ func getFollowing(acc *mastodon.Account, pageID string) {
 			//Save to map
 			followingSet[data[position].UserAcct] = struct{}{}
 
-			//Output to terminal
+			//Output to stdout
 			fmt.Println("Following:", data[position].UserAcct)
 		}
 
@@ -227,15 +208,15 @@ func getFollowing(acc *mastodon.Account, pageID string) {
 		for key, values := range resp.Header {
 			if key == "Link"{
 				pstring, _ = parseMaxID(values[0])
-				fmt.Println("Parsed Max ID:", pstring)
+				stdLogger.Printf("Parsed Max ID:%+v", pstring)
 			}
 			for _, value := range values {
-				fmt.Println("Other: ", key, value)
+				stdLogger.Printf("Other: %+v %+v", key, value)
 			}
 		}
 		
 		if pstring == "" {
-			fmt.Println("No more pages.")
+			stdLogger.Printf("No more pages.")
 			break
 		}
 	}
@@ -258,13 +239,13 @@ func getFollowers(acc *mastodon.Account, pageID string) {
 		stdLogger.Printf("Get API URL:(%s)\n", apiURL)
 		req, err := http.NewRequest("GET", apiURL, nil)
 		if err != nil {
-			log.Fatalf("Error creating HTTP request: %v", err)
+			stdLogger.Printf("Error creating HTTP request: %+v", err)
 			break
 		}
 
 		resp, err := httpClient.Do(req)
 		if err != nil {
-			log.Fatalf("Error making HTTP request: %v", err)
+			stdLogger.Printf("Error making HTTP request: %+v", err)
 			break
 		}
 		defer resp.Body.Close()
@@ -272,7 +253,7 @@ func getFollowers(acc *mastodon.Account, pageID string) {
 		//Read the Response Body
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println("Error reading body:", err)
+			stdLogger.Printf("Error reading body: %+v", err)
 			break
 		}
 	
@@ -280,7 +261,7 @@ func getFollowers(acc *mastodon.Account, pageID string) {
 		var data []ResponseData
 		err = json.Unmarshal(body, &data)
 		if err != nil {
-			fmt.Println("Error unmarshaling JSON:", err)
+			stdLogger.Printf("Error unmarshaling JSON: %+v", err)
 			break
 		}
 	
@@ -304,15 +285,15 @@ func getFollowers(acc *mastodon.Account, pageID string) {
 		for key, values := range resp.Header {
 			if key == "Link"{
 				pstring, _ = parseMaxID(values[0])
-				fmt.Println("Parsed Max ID:", pstring)
+				stdLogger.Printf("Parsed Max ID: %+v", pstring)
 			}
 			for _, value := range values {
-				fmt.Println("Other: ", key, value)
+				stdLogger.Printf("Other: %+v %+v", key, value)
 			}
 		}
 		
 		if pstring == "" {
-			fmt.Println("No more pages.")
+			stdLogger.Printf("No more pages.")
 			break
 		}
 	}
